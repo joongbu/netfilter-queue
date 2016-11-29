@@ -1,7 +1,5 @@
 <h2>netfilter install</h2>
 
-//site
-
 http://netfilter.org
 
 <h2>install list</h2>
