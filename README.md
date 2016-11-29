@@ -4,7 +4,7 @@
 
 http://netfilter.org
 
-<h2>install list</<h2>
+<h2>install list</h2>
 
 tar -xvf libmnl.tar.bz2
 
@@ -12,7 +12,7 @@ tar -xvf libnfnetlink.tar.bz2
 
 tar -xvf libnetfilter_queue.tar.bz2
 
-<h2>setting</<h2>
+<h2>setting</h2>
 
 cd <directory>
 
