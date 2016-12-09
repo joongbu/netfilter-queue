@@ -13,9 +13,10 @@
 #include <set>
 #include <thread>
 using namespace std;
-//map<string,int> site;
-typedef set<string> d_type;
-d_type d_url;
+typedef set<string> set_site;
+typedef set<string> drop_site;
+set_site s_url;
+drop_site d_url;
 void glog(int option, string err)
 {
     google::InitGoogleLogging("netfilter");
@@ -25,18 +26,25 @@ void glog(int option, string err)
     VLOG(option) << "I'm printed when you run the program with --v=1 or higher";
     //VLOG(option) << "I'm printed when you run the program with --v=2 or higher";
 }
-void drop_url()
+void drop_set()
 {
     string url;
-    cout<<"input url : ";
-    cin>>url;
-    d_type::iterator it = d_url.find(url);
+    cin>> url;
+    drop_site::iterator it = d_url.find(url);
     if(it == d_url.end())
     {
-    d_url.insert(url);
-    cout<<"success input"<<endl;
+        d_url.insert(url);
     }
+}
 
+bool drop_url(string url)
+{
+    drop_site::iterator it = d_url.find(url);
+    if(it != d_url.end())
+    {
+    return true;
+    }
+    return false;
 }
 
 void dump(unsigned char*buf, size_t len)
@@ -82,31 +90,38 @@ static u_int32_t print_pkt(struct nfq_data *tb)
     {
 
         string url;
-        cout<<"payload_len="<<dec<<ret<<endl;
+        //cout<<"payload_len="<<dec<<ret<<endl;
         //dump((unsigned char*)data,ret);
         url = getHostAddr(tb);
         if(!url.empty())
+        {
+        s_url.insert(url);
         cout<<"site :"<<url<<endl;
+        }
 
     }
     fputc('\n', stdout);
     return id;
 }
+int traffic_cal(string host, int cnt)
+{
+
+}
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,struct nfq_data *nfa, void *data)
 {
     u_int32_t id = print_pkt(nfa);
-    d_type::iterator it = d_url.find(getHostAddr(nfa));
-    cout<<"entering callback\n";
-    if(it != d_url.end())
-    return nfq_set_verdict(qh, id, NF_DROP, 0 , NULL);  //packet Drop setting
 
+
+    if(drop_url(getHostAddr(nfa)))
+    return nfq_set_verdict(qh, id, NF_DROP, 0 , NULL);  //packet Drop setting
+    else
     return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL); //packet determind
 }
 
 //this is callback function
 
-void queue_setting()
+void sniff_loop()
 {
     struct nfq_handle *h;
     struct nfq_q_handle *qh;
@@ -124,7 +139,7 @@ void queue_setting()
         glog(1,"error during nfq_unbind_pf()\n");
         exit(1);
     }
-    
+
     cout<<"binding nfnetlink_queue as nf_queue handler for AF_INET\n";
     if (nfq_bind_pf(h, AF_INET) < 0) {
         glog(1,"error during nfq_bind_pf()\n");
@@ -146,11 +161,11 @@ void queue_setting()
     {
         if ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0)
         {
-            cout<<"pkt received\n"<<endl;
+            //cout<<"pkt received\n"<<endl;
             nfq_handle_packet(h, buf, rv); //handle a packet received from the nfqueue subsystem
             continue;
         }
-        
+
         /* if your application is too slow to digest the packets that
        * are sent from kernel-space, the socket buffer that we use
        * to enqueue packets may fill up returning ENOBUFS. Depending
@@ -171,12 +186,13 @@ void queue_setting()
     nfq_destroy_queue(qh);
     cout<<"closing library handle\n";
     nfq_close(h);
-    
+
     exit(0);
 }
 
 int main(int argc, char **argv)
 {
-    //drop_url();
-    queue_setting();
+//    cout<<"drop site :";
+//    drop_set();
+    sniff_loop();
 }
